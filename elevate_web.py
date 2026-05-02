@@ -304,6 +304,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             stop_file_send()
             self._json({"ok":True})
 
+        elif path == "/api/diag":
+            raw = []
+            if ser and ser.is_open:
+                ser.write(b"?\n")
+                deadline = time.time() + 2.0
+                while time.time() < deadline:
+                    try:
+                        chunk = ser.read(64).decode("utf-8", errors="replace")
+                        if chunk: raw.append(chunk)
+                    except: break
+                    time.sleep(0.05)
+            self._json({"raw": raw, "connected": connected,
+                        "rx_alive": ser is not None and ser.is_open if ser else False})
+
         else:
             self.send_response(404); self.end_headers()
 
@@ -548,6 +562,7 @@ select,input{background:#18243a;color:#d0dff0;border:1px solid #1e3050;padding:4
         <button class="con-btn" onclick="sendRaw('?')">?</button>
         <button class="con-btn" onclick="sendCmd('$$')">$$</button>
         <button class="con-btn" onclick="sendCmd('$I')">$I</button>
+        <button class="con-btn" onclick="diagTest()" style="color:#ffbb44">DIAG</button>
         <button class="con-btn" onclick="clearConsole()">CLEAR</button>
       </div>
       <div id="console"></div>
@@ -719,14 +734,28 @@ async function fileSend() {
 async function filePause() { await fetch('/api/file_pause',{method:'POST'}); }
 async function fileStop()  { await fetch('/api/file_stop',{method:'POST'}); }
 
+// ── Diagnostics ───────────────────────────────────────────────
+async function diagTest() {
+  appendConsole('--- DIAG: sending ? and reading raw for 2s ---\n', 'warn');
+  const r = await fetch('/api/diag', {method:'POST'});
+  const d = await r.json();
+  appendConsole('Raw received: ' + JSON.stringify(d.raw) + '\n', 'warn');
+  appendConsole('rx_alive: ' + d.rx_alive + '  connected: ' + d.connected + '\n', 'warn');
+}
+
 // ── Init ──────────────────────────────────────────────────────
 window.onload = async () => {
   await refreshPorts();
   startSSE();
-  // Auto-connect if best port found
-  const sel = document.getElementById('port-sel');
-  if (sel.value) {
-    await toggleConnect();
+  // Sync connected state from server before auto-connecting
+  const st = await fetch('/api/status').then(r=>r.json());
+  if (st.connected) {
+    isConnected = true;
+    document.getElementById('connect-btn').textContent = 'DISCONNECT';
+    document.getElementById('connect-btn').classList.add('on');
+  } else {
+    const sel = document.getElementById('port-sel');
+    if (sel.value) await toggleConnect();
   }
 };
 </script>
