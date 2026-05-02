@@ -447,7 +447,8 @@ select,input{background:#18243a;color:#d0dff0;border:1px solid #1e3050;padding:4
   <div id="logo">ELEVATE <span>CNC</span> <span style="font-size:13px">CONTROLLER</span></div>
   <div class="sep"></div>
   <span class="top-lbl">PORT</span>
-  <select id="port-sel" style="width:100px"></select>
+  <select id="port-sel" style="width:90px"></select>
+  <input id="port-manual" placeholder="or type e.g. COM3" style="width:130px;font-size:12px" oninput="if(this.value)document.getElementById('port-sel').value=''">
   <button onclick="refreshPorts()" style="background:#18243a;color:#3a5070;padding:4px 7px;border-radius:3px">↻</button>
   <div class="sep"></div>
   <span class="top-lbl">BAUD</span>
@@ -663,7 +664,8 @@ async function toggleConnect() {
     document.getElementById('status-dot').textContent = '● Disconnected';
     document.getElementById('status-dot').style.color = '#3a5070';
   } else {
-    const port = document.getElementById('port-sel').value;
+    const manual = document.getElementById('port-manual').value.trim();
+    const port = manual || document.getElementById('port-sel').value;
     const baud = document.getElementById('baud-sel').value;
     document.getElementById('status-dot').textContent = '● Connecting...';
     document.getElementById('status-dot').style.color = '#ff9800';
