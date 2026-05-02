@@ -1,0 +1,40 @@
+name: Build EXE
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install pyserial pyinstaller
+
+      - name: Build EXE
+        run: |
+          python -m PyInstaller --onefile --name "Elevate CNC Controller" elevate_web.py
+
+      - name: Upload EXE as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Elevate-CNC-Controller
+          path: dist\Elevate CNC Controller.exe
+          retention-days: 90
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "Build #${{ github.run_number }}"
+          files: dist\Elevate CNC Controller.exe
+          body: "Auto-built from latest push."
